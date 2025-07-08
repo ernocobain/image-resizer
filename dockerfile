@@ -1,7 +1,6 @@
 # Tahap 1: Build
 FROM golang:1.24.4 AS builder
 
-# Install build-essentials yang berisi C compiler
 RUN apt-get update && apt-get install -y build-essential
 
 WORKDIR /app
