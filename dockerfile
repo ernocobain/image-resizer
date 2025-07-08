@@ -12,7 +12,6 @@ COPY . .
 # Hapus CGO_ENABLED=0 untuk mengizinkan CGo
 RUN go build -o /app/server -ldflags "-w -s" .
 
-# Tahap 2: Final Image
 FROM alpine:latest
 
 RUN apk add --no-cache libwebp-dev
