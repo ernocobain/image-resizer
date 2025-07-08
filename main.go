@@ -1,4 +1,4 @@
-// File: image-resizer/main.go (VERSI REVISI)
+// File: image-resizer/main.go (VERSI FINAL & BENAR)
 package main
 
 import (
@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path" // <-- Impor package 'path'
 	"strconv"
+	"strings"
 
 	webp "github.com/chai2010/webp"
 	"github.com/disintegration/imaging"
@@ -37,12 +37,11 @@ func main() {
 		}
 
 		// --- PERBAIKAN LOGIKA URL DI SINI ---
-		// Ambil hanya nama filenya saja dari path src
-		// Contoh: dari "/static/images/logo.png" menjadi "logo.png"
-		fileName := path.Base(src)
+		// Hapus garis miring di awal path jika ada
+		cleanSrc := strings.TrimPrefix(src, "/")
 
-		// Bangun URL Cloud Storage yang benar
-		storageURL := "https://storage.googleapis.com/maunguli-assets/" + fileName
+		// Bangun URL Cloud Storage yang benar dengan path lengkap
+		storageURL := "https://storage.googleapis.com/maunguli-assets/" + cleanSrc
 		// ------------------------------------
 
 		resp, err := http.Get(storageURL)
@@ -52,28 +51,32 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		// ... sisa kode untuk resize dan encode tetap sama ...
 		img, _, err := image.Decode(resp.Body)
 		if err != nil {
 			return c.Status(http.StatusInternalServerError).SendString("Failed to decode image")
 		}
+
 		width, _ := strconv.Atoi(widthStr)
 		height, _ := strconv.Atoi(heightStr)
 		if width > 0 || height > 0 {
 			img = imaging.Resize(img, width, height, imaging.Lanczos)
 		}
+
 		buf := new(bytes.Buffer)
+		c.Set("Cache-Control", "public, max-age=31536000, immutable")
+
 		if format == "webp" {
-			err = webp.Encode(buf, img, &webp.Options{Quality: 85})
+			err = webp.Encode(buf, img, &webp.Options{Quality: 80})
 			c.Set("Content-Type", "image/webp")
-		} else {
-			err = imaging.Encode(buf, img, imaging.JPEG, imaging.JPEGQuality(85))
+		} else { // Default ke JPEG
+			err = imaging.Encode(buf, img, imaging.JPEG, imaging.JPEGQuality(80))
 			c.Set("Content-Type", "image/jpeg")
 		}
+
 		if err != nil {
 			return c.Status(http.StatusInternalServerError).SendString("Encode failed")
 		}
-		c.Set("Cache-Control", "public, max-age=31536000, immutable")
+
 		return c.Send(buf.Bytes())
 	})
 
